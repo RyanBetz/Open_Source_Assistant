@@ -1,1 +1,1 @@
-# Open_Source_Assitant
+# Open_Source_Assistant
