@@ -70,6 +70,10 @@ def group_repos_by_topic(repositories, topics):
             "url": repo.get('html_url', 'N/A')
         })
 
+    # Limit to top 5 repositories per topic
+    for topic_name in grouped_repos:
+        grouped_repos[topic_name] = grouped_repos[topic_name][:5]
+
     return grouped_repos
 
 # Save grouped repositories to a JSON file
