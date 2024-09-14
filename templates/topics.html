@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Topics</title>
+
+    <!-- Include FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .topic {
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #ecf0f1;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #2980b9;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        li strong {
+            color: #e74c3c;
+        }
+        .repo-description {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .repo-stars, .repo-language {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #f39c12;
+            color: white;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        /* Collapsible section */
+        .collapsible {
+            background-color: #2980b9;
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 18px;
+            width: 100%;
+        }
+        .content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #ecf0f1;
+        }
+        /* Back button styling */
+        .back-button {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .back-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Repositories Grouped by Topics</h1>
+
+    {% for topic_name, repos in topics.items() %}
+    <button class="collapsible">{{ topic_name }}</button>
+    <div class="content">
+        <ul>
+            {% for repo in repos %}
+            <li class="{% if repo.stars|int > 1000 %}highlight{% endif %}">
+                <strong>{{ repo.name }}</strong>
+                <span class="repo-stars"><i class="fas fa-star"></i> {{ repo.stars }}</span>
+                <span class="repo-language"><i class="fas fa-code"></i> {{ repo.language }}</span><br>
+                <span class="repo-description">{{ repo.description }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+
+    <!-- Back to Home button -->
+    <a href="/" class="back-button">Back to Home</a>
+
+    <script>
+        // JavaScript for collapsible sections
+        document.addEventListener("DOMContentLoaded", function() {
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                    } else {
+                        content.style.display = "block";
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Suggestion Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 1.1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .recommendation {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            text-align: left;
+        }
+
+        .recommendation p {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .navigation {
+            margin-top: 20px;
+        }
+
+        .navigation a {
+            text-decoration: none;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .navigation a:hover {
+            background-color: #218838;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Find an Open-Source Repository</h1>
+
+        <form method="POST">
+            <input type="text" name="query" placeholder="Enter your query" required>
+            <button type="submit">Get Recommendation</button>
+        </form>
+
+        <div class="navigation">
+            <a href="/topics">View Repositories by Topic</a> <!-- Button to navigate to topics page -->
+        </div>
+
+        {% if recommendation %}
+        <div class="recommendation">
+            <h2>Repository Suggestion</h2>
+            <p>{{ recommendation }}</p> <!-- Single recommendation displayed here -->
+        </div>
+        {% else %}
+        <div class="recommendation">
+            <h2>No recommendations yet. Please submit a query!</h2>
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
