@@ -1,30 +1,42 @@
 import json
 import nltk
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.decomposition import LatentDirichletAllocation
-import random
-# Ensure NLTK data is available
-nltk.download('punkt')
-nltk.download('stopwords')
+import numpy as np
+from sklearn.cluster import KMeans
+from sentence_transformers import SentenceTransformer
 
+# NLTK setup
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
-# Load stopwords
 stop_words = set(stopwords.words('english'))
 
-# Preprocess text: tokenize, lowercase, remove stopwords
 def preprocess_text(text):
+    """
+    Preprocesses the input text by tokenizing, converting to lowercase,
+    removing stopwords, and non-alphabetic tokens.
+
+    Args:
+        text (str): The text to preprocess.
+
+    Returns:
+        str: The preprocessed text.
+    """
     tokens = word_tokenize(text.lower())
     filtered_tokens = [word for word in tokens if word.isalpha() and word not in stop_words]
     return " ".join(filtered_tokens)
 
-# Function to generate topic names based on top keywords
-def generate_topic_name(keywords):
-    return f"Topic based on: {' '.join(keywords[:3]).capitalize()}"
-
-# Load repository data from JSON
 def load_repos(file_path):
+    """
+    Loads repository data from a JSON file.
+
+    Args:
+        file_path (str): The path to the JSON file.
+
+    Returns:
+        list: A list of repositories.
+    """
     try:
         with open(file_path, 'r') as f:
             return json.load(f)
@@ -32,72 +44,90 @@ def load_repos(file_path):
         print(f"Error: {file_path} not found.")
         return []
 
-# Topic modeling with LDA
-def perform_topic_modeling(repositories):
-    descriptions = [preprocess_text(repo['description']) for repo in repositories if repo.get('description')]
+def perform_embedding_clustering(repositories, n_clusters=5):
+    """
+    Performs clustering on repository descriptions using sentence embeddings.
 
-    # Vectorize the descriptions
-    vectorizer = CountVectorizer(max_df=0.95, min_df=2, stop_words='english')
-    dt_matrix = vectorizer.fit_transform(descriptions)
+    Args:
+        repositories (list): A list of repository dictionaries.
+        n_clusters (int): The number of clusters to form.
 
-    # Fit LDA to the data
-    lda = LatentDirichletAllocation(n_components=5, random_state=42)
-    lda.fit(dt_matrix)
-
-    # Extract topics and top words
-    topics = []
-    feature_names = vectorizer.get_feature_names_out()
-    for topic_idx, topic in enumerate(lda.components_):
-        top_keywords = [feature_names[i] for i in topic.argsort()[:-11:-1]]
-        topic_name = generate_topic_name(top_keywords)
-        topics.append((topic_name, top_keywords))
-
-    return topics
-
-# Group repositories by topics and include full metadata
-def group_repos_by_topic(repositories, topics):
-    grouped_repos = {topic_name: [] for topic_name, _ in topics}
-
-    # Randomly assign repositories to topics and include full metadata
+    Returns:
+        np.ndarray: An array of cluster labels.
+    """
+    # Preprocess descriptions and handle missing ones
+    descriptions = []
     for repo in repositories:
-        random_topic = random.choice(topics)[0]
-        # Ensure repo is a dictionary with full metadata
-        grouped_repos[random_topic].append({
+        description = repo.get('description', '')
+        if description:
+            descriptions.append(preprocess_text(description))
+        else:
+            descriptions.append('')
+
+    # Generate embeddings using SentenceTransformer
+    model = SentenceTransformer('all-MiniLM-L6-v2')  # You can choose a different model if preferred
+    embeddings = model.encode(descriptions)
+
+    # Perform KMeans clustering
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
+    cluster_labels = kmeans.fit_predict(embeddings)
+
+    return cluster_labels
+
+def group_repos_by_topic(repositories, topics):
+    """
+    Groups repositories by the assigned topic labels.
+
+    Args:
+        repositories (list): A list of repository dictionaries.
+        topics (np.ndarray): An array of topic labels.
+
+    Returns:
+        dict: A dictionary grouping repositories by topic.
+    """
+    grouped_repos = {f"Topic {i + 1}": [] for i in range(max(topics) + 1)}
+
+    for i, repo in enumerate(repositories):
+        topic_label = topics[i]
+        grouped_repos[f"Topic {topic_label + 1}"].append({
             "name": repo.get('name', 'Unknown Repository'),
             "description": repo.get('description', 'No description available'),
-            "stars": repo.get('stargazers_count', 'N/A'),
+            "stars": repo.get('stargazers_count', 0),
             "language": repo.get('language', 'N/A'),
             "url": repo.get('html_url', 'N/A')
         })
 
-    # Limit to top 5 repositories per topic
+    # Sort repositories within each topic by stars in descending order
     for topic_name in grouped_repos:
+        grouped_repos[topic_name] = sorted(
+            grouped_repos[topic_name],
+            key=lambda x: x.get('stars', 0),
+            reverse=True
+        )
+        # Limit to top 5 repositories per topic
         grouped_repos[topic_name] = grouped_repos[topic_name][:5]
 
     return grouped_repos
 
-# Save grouped repositories to a JSON file
-def save_grouped_repos(grouped_repos, output_file='grouped_repositories_by_topic.json'):
-    with open(output_file, 'w') as f:
-        json.dump(grouped_repos, f, indent=4)
-    print(f"Grouped repositories saved to {output_file}")
-
-# Main function to run the topic modeling script
-if __name__ == "__main__":
+def main():
+    """
+    Main function to execute the topic modeling process.
+    """
     repos = load_repos('github_metadata.json') + load_repos('huggingface_metadata.json')
 
     if repos:
-        # Perform topic modeling
-        topics = perform_topic_modeling(repos)
+        # Perform embedding and clustering
+        cluster_labels = perform_embedding_clustering(repos, n_clusters=5)
 
         # Group repositories by topic
-        grouped_repos = group_repos_by_topic(repos, topics)
+        grouped_repos = group_repos_by_topic(repos, cluster_labels)
 
-        # Save the result to a file
-        save_grouped_repos(grouped_repos)
-
-        print("Topics found in the repository descriptions:")
-        for topic_name, keywords in topics:
-            print(f"{topic_name}: {' '.join(keywords)}")
+        # Save grouped repositories to a file
+        with open('grouped_repositories_by_topic.json', 'w') as f:
+            json.dump(grouped_repos, f, indent=4)
+        print("Grouped repositories saved.")
     else:
         print("No repositories found.")
+
+if __name__ == "__main__":
+    main()
